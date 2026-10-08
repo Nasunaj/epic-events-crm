@@ -24,9 +24,7 @@ class Role(Base):
     employees: Mapped[list["Employee"]] = relationship(back_populates="role")
 
     def __repr__(self) -> str:
-        return(
-            f"role (id={self.id}, name={self.name})"
-        )
+        return f"role (id={self.id}, name={self.name})"
 
 
 class Employee(Base):
@@ -38,9 +36,7 @@ class Employee(Base):
 
     __tablename__ = "employee"
     id: Mapped[int] = mapped_column(primary_key=True)
-    employee_number: Mapped[int] = mapped_column(
-        String(100), unique=True
-    )
+    employee_number: Mapped[int] = mapped_column(String(100), unique=True)
     name: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(100), unique=True)
     # Ne doit pas stocker le mot de passe en clair
@@ -59,7 +55,7 @@ class Employee(Base):
     )
 
     def __repr__(self) -> str:
-        return(
+        return (
             f"employee (id={self.id}, employee_number={self.employee_number}, "
             f"name={self.name}, email={self.email}, "
             f"role_id={self.role_id})"
@@ -112,8 +108,7 @@ class Contract(Base):
     __tablename__ = "contract"
     id: Mapped[int] = mapped_column(primary_key=True)
     total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    remaining_amount: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2))
+    remaining_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     is_signed: Mapped[bool] = mapped_column(Boolean)
     creation_date: Mapped[datetime] = mapped_column(DateTime)
 
@@ -125,11 +120,10 @@ class Contract(Base):
     commercial: Mapped["Employee"] = relationship(
         back_populates="contracts", foreign_keys=[commercial_id]
     )
-    event: Mapped["Event"] = relationship(back_populates="contract",
-                                          uselist=False)
+    event: Mapped["Event"] = relationship(back_populates="contract", uselist=False)
 
     def __repr__(self) -> str:
-        return(
+        return (
             f"contract (id={self.id}, client_id={self.client_id}, "
             f"commercial_id={self.commercial_id}, "
             f"total_amount={self.total_amount}, "
@@ -154,9 +148,7 @@ class Event(Base):
     location: Mapped[str] = mapped_column(String(500))
     attendees: Mapped[int | None] = mapped_column(Integer)
     note: Mapped[str | None] = mapped_column(String(1000))
-    contract_id: Mapped[int] = mapped_column(
-        ForeignKey("contract.id"), unique=True
-    )
+    contract_id: Mapped[int] = mapped_column(ForeignKey("contract.id"), unique=True)
     contract: Mapped["Contract"] = relationship(
         back_populates="event", foreign_keys=[contract_id]
     )
@@ -166,7 +158,7 @@ class Event(Base):
     )
 
     def __repr__(self) -> str:
-        return(
+        return (
             f"event (id={self.id}, name={self.name}, "
             f"event_date_start={self.event_date_start}) "
         )

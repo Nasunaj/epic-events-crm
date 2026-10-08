@@ -6,12 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "epicevents"
 version = "0.1.0"
 description = "Epic Events internal CRM (command-line application)"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "SQLAlchemy>=2.0",
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
     "click>=8.0",
+    "passlib>=1.7",
+    "argon2-cffi>=25.1"
 ]
 
 [project.optional-dependencies]
@@ -24,3 +26,11 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["epicevents*"]
+
+[tool.black]
+target-version = ["py312"]
+line-length = 88
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
