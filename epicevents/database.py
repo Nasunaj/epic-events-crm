@@ -42,3 +42,8 @@ SessionLocal = sessionmaker(bind=engine)
 # C'est aussi depuis lui que nous créons les tables :
 # Base.metadata.create_all(engine).
 Base = declarative_base()
+
+
+def get_session():
+    """Opens a short-lived session connected to the engine."""
+    return SessionLocal()
