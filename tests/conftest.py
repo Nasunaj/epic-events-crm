@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from epicevents import token_store
 from epicevents.database import Base
 from epicevents.models import Role, Employee, Client, Event, Contract
 from datetime import datetime
@@ -187,3 +188,20 @@ def make_employee(session, role_ges):
         return create_employee(**defaults)
 
     return _make
+
+
+# Test for epicevents/token_store.py
+@pytest.fixture()
+def isolated_store(tmp_path):
+    """Redirect TOKEN_PATH to a throwaway directory for this test"""
+    # Mémorisation du vrai chemin
+    original = token_store.TOKEN_PATH
+
+    # token_store.TOKEN_PATH = ... : on remplace la constante du module à la
+    # volée. Python lit les variables de module au moment de l'appel
+    # (TOKEN_PATH est regardé dans le module à chaque exécution de
+    # save_token, etc.). C'est pour ça que le remplacement fonctionne.
+    token_store.TOKEN_PATH = tmp_path / "token"
+    yield
+    # Restauration du vrai chemin
+    token_store.TOKEN_PATH = original
