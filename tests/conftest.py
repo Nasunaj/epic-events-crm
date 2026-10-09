@@ -122,6 +122,20 @@ def contract(session, client, commercial):
     return ct
 
 
+# @pytest.fixture()
+# def contract2(session, client, commercial):
+#     ct = Contract(
+#         client=client,
+#         total_amount=Decimal("2000.00"),
+#         remaining_amount=Decimal("0.00"),
+#         is_signed=False,
+#         creation_date=datetime(2026, 1, 15),
+#     )
+#     session.add(ct)
+#     session.commit()
+#     return ct
+
+
 @pytest.fixture()
 def event(session, contract, support):
     ev = Event(
@@ -205,3 +219,40 @@ def isolated_store(tmp_path):
     yield
     # Restauration du vrai chemin
     token_store.TOKEN_PATH = original
+
+
+@pytest.fixture()
+def make_client(session, commercial):
+    """Factory: returns a callable creating clients with defaults."""
+
+    def _make(**overrides):
+        defaults = dict(
+            name="Client 1",
+            email="client@startup.com",
+            phone="06 01 09 10 45",
+            company_name="Startup SAS",
+            creation_date=datetime(2026, 10, 1),
+            last_update=datetime(2026, 10, 1),
+            commercial=commercial,
+        )
+        defaults.update(overrides)
+        client = Client(**defaults)
+        session.add(client)
+        session.commit()
+        return client
+
+    return _make
+
+
+@pytest.fixture()
+def gestion(session, role_ges):
+    emp = Employee(
+        employee_number="E003",
+        name="M Gestion",
+        email="m.gestion@epicevents.com",
+        password_hash="hash3",
+        role=role_ges,
+    )
+    session.add(emp)
+    session.commit()
+    return emp
