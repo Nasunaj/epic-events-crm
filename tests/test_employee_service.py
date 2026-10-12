@@ -7,6 +7,7 @@ happens before any database write, and duplicates are rejected.
 
 import pytest
 
+from epicevents.exceptions import ValidationError
 from epicevents.services.employee_service import DuplicateError
 from epicevents.security import verify_password
 
@@ -33,19 +34,19 @@ def test_duplicate_employee_number_raises(session, make_employee):
     make_employee()
     with pytest.raises(DuplicateError):
         make_employee(
-            employee_number="E001", email="c.john@epicevents.com", name="John C"
+            employee_number="E900", email="c.john@epicevents.com", name="John C"
         )
 
 
 def test_short_password_raises(session, make_employee):
     """Test that short passwords raise error."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         make_employee(password="AZERTY")
 
 
 def test_password_confirmation_mismatch_raises(session, make_employee):
     """Test that password confirmation mismatch raise an error."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         make_employee(password_confirmation="qsdfghcdfg")
 
 
@@ -57,13 +58,13 @@ def test_password_without_confirmation_is_accepted(session, make_employee):
 
 def test_invalid_email_format_raises(session, make_employee):
     """Test that invalid email formats raise error."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         make_employee(email="invalide")
 
 
 def test_unknown_role_raises(session, make_employee):
     """Test that unknown roles raise error."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         make_employee(role_name="inconnu")
 
 
