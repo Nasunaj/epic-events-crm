@@ -1,6 +1,5 @@
 """Employee business logic (service layer)"""
 
-import re
 from sqlalchemy.orm import Session
 
 from epicevents.auth import check_permission
@@ -13,9 +12,11 @@ from epicevents.exceptions import (
 from epicevents.models import Employee, Role
 from epicevents.policies import EMPLOYEE_MANAGERS
 from epicevents.security import hash_password
-
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-MIN_PASSWORD_LENGTH = 8
+from epicevents.validation import (
+    EMAIL_RE,
+    MIN_PASSWORD_LENGTH,
+    require_non_empty_if_present,
+)
 
 
 def _validate_password(password: str, confirmation: str | None = None) -> None:
@@ -128,8 +129,10 @@ def update_employee(
         # Pas de confirmation en update : la CLI demandera la double
         # saisie, le service reçoit une valeur déjà confirmée.
         _validate_password(fields_to_update["password"])
-    if "name" in fields_to_update and not fields_to_update["name"].strip():
-        raise ValidationError("Le nom ne peut pas être vide.")
+
+    require_non_empty_if_present("name", fields_to_update)
+    # if "name" in fields_to_update and not fields_to_update["name"].strip():
+    #     raise ValidationError("Le nom ne peut pas être vide.")
     if "email" in fields_to_update:
         _validate_email(session, fields_to_update["email"], exclude_id=target.id)
     if "employee_number" in fields_to_update:
