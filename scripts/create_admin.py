@@ -40,11 +40,9 @@ Security notes:
 import getpass  # saisie masquée
 
 from epicevents.database import get_session  # fabrique de notre session
+from epicevents.exceptions import ValidationError, DuplicateError
 from epicevents.models import Role
-from epicevents.services.employee_service import (
-    DuplicateError,  # Notre erreur métier
-    create_employee,  # Notre service
-)
+from epicevents.services.employee_service import create_employee  # Notre service
 
 GESTION = "gestion"
 
@@ -85,7 +83,7 @@ def bootstrap_admin(
     except DuplicateError as exc:
         print(f"Compte déjà existant : {exc}")
         return False
-    except ValueError as exc:
+    except ValidationError as exc:
         print(f"Données invalides : {exc}")
         return False
     print(f"Admin créé : {employee.name} ({employee.email})")

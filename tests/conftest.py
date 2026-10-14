@@ -122,20 +122,6 @@ def contract(session, client, commercial):
     return ct
 
 
-# @pytest.fixture()
-# def contract2(session, client, commercial):
-#     ct = Contract(
-#         client=client,
-#         total_amount=Decimal("2000.00"),
-#         remaining_amount=Decimal("0.00"),
-#         is_signed=False,
-#         creation_date=datetime(2026, 1, 15),
-#     )
-#     session.add(ct)
-#     session.commit()
-#     return ct
-
-
 @pytest.fixture()
 def event(session, contract, support):
     ev = Event(
@@ -187,14 +173,14 @@ def event2(session, contract2, support):
 
 @pytest.fixture()
 def make_employee(session, role_ges):
-    """Factory: returns a callable creating employees with defaults."""
+    """Factory: create employees with defaults that collide with nothing."""
 
     def _make(**overrides):
         defaults = dict(
             session=session,
-            email="c.josh@epicevents.com",
-            employee_number="E001",
-            name="Josh C",
+            email="factory.employee@epicevents.com",
+            employee_number="E900",
+            name="Factory Employee",
             role_name="gestion",
             password="AZERTYUI",
         )
