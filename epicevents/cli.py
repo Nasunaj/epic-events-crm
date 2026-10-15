@@ -35,6 +35,11 @@ from epicevents.services.auth_service import (
     # alias : évite la collision avec la commande "login"
     login as auth_login,
 )
+from epicevents.services.client_service import (
+    create_client,
+    update_client,
+    list_clients,
+)
 from epicevents.services.employee_service import (
     create_employee,
     update_employee,
@@ -231,6 +236,95 @@ def list_employees_cmd(session, employee):
     table.add_column("Rôle", style="green")
     for e in list_employees(session):
         table.add_row(str(e.id), e.employee_number, e.name, e.email, e.role.name)
+    console.print(table)
+
+
+# ------- Client ------------------
+@click.group()
+def clients():
+    """Client management."""
+
+
+# branche le groupe au groupe racine
+cli.add_command(clients)
+
+
+# --- US-20 Créer un client (commercial) --------
+@clients.command(name="create")
+@require_login
+@click.option("--name", prompt=True)
+@click.option("--email", prompt=True)
+@click.option("--phone", prompt=True)
+@click.option("--company-name", prompt=True)
+def create_client_cmd(session, employee, name, email, phone, company_name):
+    """Créer un client (association automatique au commercial connecté)."""
+    client = create_client(
+        session,
+        employee,
+        name=name.strip(),
+        email=email.strip(),
+        phone=phone,
+        company_name=company_name,
+    )
+    # L'auto-association rendue visible : l'utilisateur comprend
+    # que le client est à lui, sans qu'il ait eu à le demander.
+    click.echo(f"Client créé : {client.name} — commercial : {employee.name}")
+
+
+# --- US-21 — Modifier un client (commercial, le sien) --------
+@clients.command(name="update")
+@require_login
+@click.argument("client_id", type=int)
+@click.option("--name", default=None)
+@click.option("--email", default=None)
+@click.option("--phone", default=None)
+@click.option("--company-name", default=None)
+def update_client_cmd(session, employee, client_id, name, email, phone, company_name):
+    """Modifier un client dont vous êtes le commercial."""
+    fields = {
+        k: v
+        for k, v in {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "company_name": company_name,
+        }.items()
+        if v is not None
+    }
+    if "name" in fields:
+        fields["name"] = fields["name"].strip()
+    if "email" in fields:
+        fields["email"] = fields["email"].strip()
+    updated = update_client(session, employee, client_id, **fields)
+    click.echo(f"Client modifié : {updated.name}")
+
+
+# --- US-22 — Lister les clients (tous) --------
+@clients.command(name="list")
+@require_login
+def list_clients_cmd(session, employee):
+    """Lister tous les clients (lecture universelle)."""
+    table = Table(title="Clients")
+    for col in (
+        "ID",
+        "Nom",
+        "Entreprise",
+        "Email",
+        "Téléphone",
+        "Commercial",
+        "Dernière MAJ",
+    ):
+        table.add_column(col)
+    for c in list_clients(session):
+        table.add_row(
+            str(c.id),
+            c.name,
+            c.company_name,
+            c.email,
+            c.phone,
+            c.commercial.name,
+            c.last_update.strftime("%d/%m/%Y"),
+        )
     console.print(table)
 
 
