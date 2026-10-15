@@ -32,3 +32,7 @@ class NotFoundError(EpicEventsError):
 
 class DuplicateError(EpicEventsError):
     """Raised when a email or employee number already exists"""
+
+
+class AuthenticationError(Exception):
+    """Invalid credentials (generic message on purpose)."""

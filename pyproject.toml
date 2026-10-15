@@ -11,11 +11,15 @@ dependencies = [
     "SQLAlchemy>=2.0",
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
-    "click>=8.0",
     "passlib>=1.7",
     "argon2-cffi>=25.1",
-     "PyJWT>=2.15"
+    "PyJWT>=2.15",
+    "rich>=15.0",
+    "click>=8.5",
 ]
+
+[project.scripts]
+epicevents = "epicevents.cli:main"
 
 [project.optional-dependencies]
 dev = [

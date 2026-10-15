@@ -4,10 +4,13 @@ black==26.5.1
 cffi==2.1.1
 click==8.5.0
 coverage==7.16.1
+-e git+ssh://git@github.com/Nasunaj/epic-events-crm.git@1668bb8d24d38c5bc9204f21e8c1dd7a680075cc#egg=epicevents
 flake8==7.4.1
 greenlet==3.5.6
 iniconfig==2.3.0
+markdown-it-py==4.2.0
 mccabe==0.7.0
+mdurl==0.1.2
 mypy_extensions==1.1.0
 packaging==26.3
 passlib==1.7.4
@@ -25,5 +28,6 @@ pytest==9.1.1
 pytest-cov==7.1.0
 python-dotenv==1.2.3
 pytokens==0.4.1
+rich==15.0.0
 SQLAlchemy==2.0.54
 typing_extensions==4.16.0
