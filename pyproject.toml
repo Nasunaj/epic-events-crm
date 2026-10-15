@@ -39,3 +39,14 @@ line-length = 88
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+    "scripts/check_models.py",
+    "scripts/init_db.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+]

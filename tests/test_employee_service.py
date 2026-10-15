@@ -8,8 +8,16 @@ happens before any database write, and duplicates are rejected.
 import pytest
 
 from epicevents.exceptions import ValidationError
-from epicevents.services.employee_service import DuplicateError
+from epicevents.services.employee_service import DuplicateError, list_employees
 from epicevents.security import verify_password
+
+
+def test_list_employees_returns_all_sorted(session, commercial, support, gestion):
+    """Reading is universal: all employees, ordered by number."""
+    employees = list_employees(session)
+    assert len(employees) == 3
+    numbers = [e.employee_number for e in employees]
+    assert numbers == sorted(numbers)
 
 
 def test_create_employee_stores_hash_not_plaintext(session, make_employee):

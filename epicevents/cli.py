@@ -19,6 +19,9 @@ import functools
 # prompts, aide, conversion de types) vient de lui.
 import click
 
+from rich.console import Console
+from rich.table import Table
+
 # Les briques (aucune règle métier écrit ici)
 from epicevents.database import get_session
 from epicevents.exceptions import (
@@ -32,7 +35,14 @@ from epicevents.services.auth_service import (
     # alias : évite la collision avec la commande "login"
     login as auth_login,
 )
+from epicevents.services.employee_service import (
+    create_employee,
+    update_employee,
+    list_employees,
+)
 from epicevents.token_store import clear_token, save_token
+
+console = Console()
 
 # La commande CLI s'appelle login (le nom tapé par l'utilisateur). Le service
 # s'appelle aussi login. L'import via l'alias distingue les deux couches :
@@ -128,7 +138,7 @@ def whoami():
         click.echo(f"{employee.name} — {employee.email} ({employee.role.name})")
 
 
-# --- US-03 — Déconnexion --------
+# --- US-03 Déconnexion --------
 @cli.command()
 def logout():
     """Clear the stored session token."""
@@ -137,6 +147,91 @@ def logout():
     # fichier absent silencieusement). Un seul appel, zéro condition.
     clear_token()
     click.echo("Déconnecté.")
+
+
+# ------- Collaborateur ------------------
+@click.group()
+def employees():
+    """Employee management."""
+
+
+# branche le groupe au groupe racine
+cli.add_command(employees)
+
+
+# --- US-10 Créer un collaborateur --------
+@employees.command()
+@require_login
+@click.option("--name", prompt=True)
+@click.option("--email", prompt=True)
+@click.option("--employee-number", prompt=True)
+@click.option("--role-name", prompt=True)
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True)
+def create(session, employee, email, employee_number, name, role_name, password):
+    """Create a new employee (gestion allow)."""
+    created = create_employee(
+        session,
+        employee=employee,  # le service vérifie son rôle
+        email=email.strip(),
+        employee_number=employee_number,
+        name=name,
+        role_name=role_name,
+        password=password,
+    )
+    click.echo(f"Créé : {created.name} ({created.role.name})")
+
+
+# --- US-11 Modifier un collaborateur --------
+@employees.command()
+@click.argument("target_id", type=int)
+# Un argument Click (contrairement à une option --name) est un paramètre que
+# l'utilisateur tape en position, sans nom, obligatoire par défaut.
+@click.option("--name", default=None)
+@click.option("--email", default=None)
+@click.option("--employee-number", default=None)
+# convention cli pas de _ mettre plutôt à la place - cli déduira pour trouver
+# ex : --employee-number => employee_number def update.
+@click.option("--role-name", default=None)
+@require_login
+def update(session, employee, target_id, name, email, employee_number, role_name):
+    """Update an existing employee (gestion allow)"""
+    dict_param = {
+        "name": name,
+        "email": email,
+        "employee_number": employee_number,
+        "role_name": role_name,
+    }  # k: v = la clé k pointe vers la valeur v
+    fields = {
+        k: (v.strip() if k == "email" else v)
+        for k, v in dict_param.items()
+        if v is not None
+    }
+    # Le mot de passe : jamais en option (il resterait dans
+    # l'historique du shell). On le demande ici, masqué, seulement
+    # si l'utilisateur en veut un nouveau.
+    if click.confirm("Changer le mot de passe ?"):
+        fields["password"] = click.prompt(
+            "Nouveau mot de passe", hide_input=True, confirmation_prompt=True
+        )
+    updated = update_employee(session, employee, target_id, **fields)
+    click.echo(f"Modifié : {updated.name}")
+
+
+# --- US-12 Lister les collaborateurs --------
+@employees.command(name="list")
+@require_login
+# underscore final est la convention pour éviter d'écraser le builtin list
+def list_employees_cmd(session, employee):
+    """Lister les collaborateurs (US-12)."""
+    table = Table(title="Collaborateurs")
+    table.add_column("ID", justify="right")
+    table.add_column("N°", style="cyan")
+    table.add_column("Nom")
+    table.add_column("Email")
+    table.add_column("Rôle", style="green")
+    for e in list_employees(session):
+        table.add_row(str(e.id), e.employee_number, e.name, e.email, e.role.name)
+    console.print(table)
 
 
 # --- Le harnais d'erreurs global (US-04) -----

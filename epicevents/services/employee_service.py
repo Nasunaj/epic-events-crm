@@ -19,6 +19,11 @@ from epicevents.validation import (
 )
 
 
+def list_employees(session: Session) -> list[Employee]:
+    """Return all employees, sorted by employee number."""
+    return session.query(Employee).order_by(Employee.employee_number).all()
+
+
 def _validate_password(password: str, confirmation: str | None = None) -> None:
     """Validate password strength and confirmation."""
     if len(password) < MIN_PASSWORD_LENGTH:
@@ -55,14 +60,29 @@ def _validate_employee_number(
 
 def create_employee(
     session: Session,
+    employee: Employee | None,
     email: str,
     employee_number: str,
     name: str,
     role_name: str,
     password: str,
     password_confirmation: str | None = None,
+    bootstrap: bool = False,
 ) -> Employee:
-    """Create a collaborator. Hashes the password, never stores plaintext."""
+    """Create a collaborator. Hashes the password, never stores plaintext
+    (Gestion only)"""
+
+    # Autorisation (avant toute validation de données — comme update)
+    if not bootstrap:
+        if employee is None:
+            raise PermissionDeniedError(
+                "Aucun appelant : création autorisée uniquement en "
+                "bootstrap (scripts/create_admin)."
+            )
+        if not check_permission(employee, EMPLOYEE_MANAGERS):
+            raise PermissionDeniedError(
+                f"Le rôle {employee.role.name!r} ne peut pas créer " "un collaborateur."
+            )
 
     _validate_email(session, email)
     _validate_password(password, password_confirmation)
