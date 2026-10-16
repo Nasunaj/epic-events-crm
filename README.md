@@ -44,13 +44,13 @@ Copy the example environment file and fill in your values:
 ```bash
 cp .env.example .env
 ```
-  Variable | Description |
- |---|---|
- | `DB_HOST` / `DB_PORT` | PostgreSQL host and port |
+ |  Variable                             | Description |
+ |---------------------------------------|---|
+ | `DB_HOST` / `DB_PORT`                 | PostgreSQL host and port |
  | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Database credentials |
- | `JWT_SECRET` | Secret used to sign tokens (`openssl rand -base64 32`) |
- | `JWT_EXPIRATION_HOURS` | Token lifetime in hours |
- | `SENTRY_DSN` | Sentry project DSN (optional: without it, error reporting is disabled) |
+ | `JWT_SECRET`                          | Secret used to sign tokens (`openssl rand -base64 32`) |
+ | `JWT_EXPIRATION_HOURS`                | Token lifetime in hours |
+ | `SENTRY_DSN`                          | Sentry project DSN (optional: without it, error reporting is disabled) |
 
 **Never commit your `.env` file** — it contains your secrets.
 
@@ -99,7 +99,7 @@ requires an authenticated session.
 pytest tests/ -v --cov=epicevents
 ```
 
-133 tests, ~91% overall coverage. Tests run on an
+134 tests, ~91% overall coverage. Tests run on an
 in-memory SQLite database: no PostgreSQL and no token file are needed.
 
 ## Project structure
