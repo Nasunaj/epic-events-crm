@@ -1,11 +1,20 @@
 """Tests for the admin bootstrap logic (scripts/create_admin.py)."""
 
-from scripts.create_admin import GESTION, bootstrap_admin
+from scripts.create_admin import bootstrap_admin
 from epicevents.models import Role
+from scripts.seed_roles import seed_roles
+
+GESTION = "gestion"
+
+
+def _seeded(session):
+    """Précondition réaliste : l'installateur a semé les rôles avant."""
+    seed_roles(session)
 
 
 def test_bootstrap_creates_role_and_admin(session):
     """First run: the gestion role is created along with the admin."""
+    _seeded(session)
     ok_first_run = bootstrap_admin(
         session,
         email="admin@epicevents.com",
@@ -26,8 +35,7 @@ def test_bootstrap_is_idempotent_on_role(session):
     Given a fresh database, bootstrapping twice (e.g. an installer
     running the script again) must keep exactly one 'gestion' role.
     """
-    # base vierge, aucun rôle gestion (précondition)
-    assert session.query(Role).filter_by(name=GESTION).count() == 0
+    _seeded(session)
 
     # premier lancement du script
     ok = bootstrap_admin(
@@ -60,6 +68,7 @@ def test_bootstrap_is_idempotent_on_role(session):
 
 def test_bootstrap_duplicate_return_false(session):
     """An already-used mail return False, without crashing"""
+    _seeded(session)
     args = dict(
         email="a@epicevents.com",
         employee_number="E001",

@@ -3,10 +3,7 @@
 from epicevents.models import Employee
 from epicevents.security import create_token, verify_password, decode_token
 from epicevents.token_store import read_token, save_token
-
-
-class AuthenticationError(Exception):
-    """Invalid credentials (generic message on purpose)."""
+from epicevents.exceptions import AuthenticationError
 
 
 def login(session, email: str, password: str) -> Employee:

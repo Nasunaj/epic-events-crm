@@ -41,20 +41,7 @@ import getpass  # saisie masquée
 
 from epicevents.database import get_session  # fabrique de notre session
 from epicevents.exceptions import ValidationError, DuplicateError
-from epicevents.models import Role
 from epicevents.services.employee_service import create_employee  # Notre service
-
-GESTION = "gestion"
-
-
-def ensure_role(session, role_name: str) -> Role:
-    """Return the role, creating it if missing (idempotent)."""
-    role = session.query(Role).filter_by(name=role_name).first()
-    if role is None:
-        role = Role(name=role_name)
-        session.add(role)
-        session.commit()
-    return role
 
 
 def bootstrap_admin(
@@ -69,16 +56,17 @@ def bootstrap_admin(
 
     Returns True on success, False if the account already exists.
     """
-    role = ensure_role(session, GESTION)
     try:
         employee = create_employee(
             session,
+            employee=None,
             email=email,
             employee_number=employee_number,
             name=name,
             password=password,
             password_confirmation=password_confirmation,
-            role_name=role.name,
+            role_name="gestion",
+            bootstrap=True,
         )
     except DuplicateError as exc:
         print(f"Compte déjà existant : {exc}")

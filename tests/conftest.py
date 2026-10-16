@@ -178,6 +178,8 @@ def make_employee(session, role_ges):
     def _make(**overrides):
         defaults = dict(
             session=session,
+            employee=None,
+            bootstrap=True,
             email="factory.employee@epicevents.com",
             employee_number="E900",
             name="Factory Employee",
