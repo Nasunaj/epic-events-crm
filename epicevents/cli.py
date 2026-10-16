@@ -40,6 +40,13 @@ from epicevents.services.client_service import (
     update_client,
     list_clients,
 )
+from epicevents.services.contract_service import (
+    create_contract,
+    update_contract,
+    list_unsigned_contracts,
+    list_unpaid_contracts,
+    list_contracts,
+)
 from epicevents.services.employee_service import (
     create_employee,
     update_employee,
@@ -324,6 +331,130 @@ def list_clients_cmd(session, employee):
             c.phone,
             c.commercial.name,
             c.last_update.strftime("%d/%m/%Y"),
+        )
+    console.print(table)
+
+
+# ------- Client ------------------
+@click.group()
+def contracts():
+    """contract management."""
+
+
+# branche le groupe au groupe racine
+cli.add_command(contracts)
+
+
+# --- US-30 Créer un contrat (gestion) --------
+@contracts.command(name="create")
+@require_login
+@click.option("--client-id", type=int, prompt=True)
+@click.option("--total-amount", prompt=True)
+@click.option(
+    "--signed",
+    is_flag=True,
+    default=None,
+    help="Contrat déjà signé (sinon, la question est posée)",
+)
+def create_contract_cmd(session, employee, client_id, total_amount, signed):
+    """Creating a contract (administration). At the creation stage, no
+    payments are made until the contract has been signed."""
+    if signed is None:
+        signed = click.confirm("Le contrat est-il déjà signé?", default=False)
+    total = total_amount.strip()
+    if signed:
+        remaining = click.prompt("Montant restant à payer", default=total)
+    else:
+        remaining = total
+    contract = create_contract(
+        session,
+        employee,
+        client_id,
+        total_amount=total,
+        remaining_amount=remaining.strip(),
+        is_signed=signed,
+    )
+    click.echo(f"Contrat {contract.id} créé — client : {contract.client.name}")
+
+
+# --- US-31 — Modifier un contrat (gestion tous ; commercial ses clients) --------
+@contracts.command(name="update")
+@require_login
+@click.argument("contract_id", type=int)
+@click.option("--total-amount", default=None, help="Nouveau montant total")
+@click.option("--remaining-amount", default=None, help="Nouveau restant à payer")
+@click.option(
+    "--signed/--unsigned",
+    "new_signed",
+    default=None,
+    help="Changer le statut de signature",
+)
+@click.option(
+    "--client-id", type=int, default=None, help="Rattacher à un autre client (gestion)"
+)
+def update_contract_cmd(
+    session,
+    employee,
+    contract_id,
+    total_amount,
+    remaining_amount,
+    new_signed,
+    client_id,
+):
+    """Update a contract."""
+    fields = {
+        k: v
+        for k, v in {
+            "total_amount": total_amount,
+            "remaining_amount": remaining_amount,
+            "client_id": client_id,
+        }.items()
+        if v is not None
+    }
+    if new_signed is not None:
+        fields["is_signed"] = new_signed
+    updated = update_contract(session, employee, contract_id, **fields)
+    click.echo(
+        f"Contrat {updated.id} modifié — client : {updated.client.name}, "
+        f"signé : {'oui' if updated.is_signed else 'non'}"
+    )
+
+
+# --- US-32 — Lister les contrats (tous, avec filtres) --------
+@contracts.command(name="list")
+@require_login
+@click.option(
+    "--unsigned",
+    "unsigned_only",
+    is_flag=True,
+    help="Uniquement les contrats non signés",
+)
+@click.option(
+    "--unpaid", "unpaid_only", is_flag=True, help="Uniquement les contrats non soldés"
+)
+def list_contract_cmd(session, employee, unsigned_only, unpaid_only):
+    """Lister les contrats (lecture universelle, filtres optionnels)."""
+    if unsigned_only:
+        contracts = list_unsigned_contracts(session)
+    elif unpaid_only:
+        contracts = list_unpaid_contracts(session)
+    else:
+        contracts = list_contracts(session)
+    if not contracts:
+        click.echo("Aucun contrat trouvé.")
+        return
+    table = Table(title="Contrats")
+    for col in ("ID", "Client", "Commercial", "Total", "Restant", "Signé", "Créé le"):
+        table.add_column(col)
+    for c in contracts:
+        table.add_row(
+            str(c.id),
+            c.client.name,
+            c.commercial.name if c.commercial else "-",
+            f"{c.total_amount:,.2f} €".replace(",", " "),
+            f"{c.remaining_amount:,.2f} €".replace(",", " "),
+            "✓" if c.is_signed else "✗",
+            c.creation_date.strftime("%d/%m/%Y"),
         )
     console.print(table)
 
