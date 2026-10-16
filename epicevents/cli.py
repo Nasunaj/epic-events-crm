@@ -18,6 +18,7 @@ import functools
 # click : le framework CLI. Toute la mécanique de parsing (options,
 # prompts, aide, conversion de types) vient de lui.
 import click
+import jwt
 
 from rich.console import Console
 from rich.table import Table
@@ -88,19 +89,23 @@ def require_login(func):
         # Le décorateur résout les 2 dépendances de toute commande :
         # 1. la session (l'accès à la base)
         session = get_session()
-        # 2. l'identité (qui est connecté ?) relit le token stocké
-        #   sur disque, le décode, et recharge l'employé depuis la base.
-        #   Retourne None si pas de token / token expiré / employé disparu.
-        employee = get_current_employee(session)
+        # 2. l'identité (qui est connecté ?) relit le token stocké sur disque,
+        #    le décode, et recharge l'employé depuis la base. Retourne None si
+        #    pas de token ou employé disparu ; LÈVE si le token est expiré ou
+        #    altéré — on l'attrape : c'est "pas connecté", pas un crash.
+        try:
+            employee = get_current_employee(session)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            employee = None  # token expiré/altéré = pas connecté, pas un crash
         if employee is None:
             # US-04 : aucun accès sans authentification. On refuse avec un
             # message actionnable (comment se connecter) sur stderr.
             click.echo("Non connecté. Lancez 'epicevents login'.", err=True)
             sys.exit(1)  # code de sortie 1 = échec (convention Unix)
-            # Injection : la commande reçoit session et employee comme
-            # premiers paramètres. Elle ne les demande jamais à l'utilisateur.
-            # C'est le pattern dependency injection : la couche au-dessus
-            # fournit le contexte, la commande se concentre sur son action.
+        # Injection : la commande reçoit session et employee comme
+        # premiers paramètres. Elle ne les demande jamais à l'utilisateur.
+        # C'est le pattern dependency injection : la couche au-dessus
+        # fournit le contexte, la commande se concentre sur son action.
         return func(session, employee, *args, **kwargs)
 
     return wrapper
@@ -153,7 +158,10 @@ def whoami():
     # Prototype de toute commande protégée : session => identité =>
     # refus si None, action sinon. Les commandes métier utiliseront @require_login.
     session = get_session()
-    employee = get_current_employee(session)
+    try:
+        employee = get_current_employee(session)
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        employee = None
     if employee is None:
         # US-02 : sans token, on l'affiche clairement => pas un crash.
         click.echo("Non connecté.")

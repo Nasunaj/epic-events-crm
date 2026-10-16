@@ -107,6 +107,21 @@ def test_guard_refuses_without_token(runner, not_logged_in, command):
     assert "Non connecté" in result.output
 
 
+def test_guard_treats_expired_token_as_not_logged_in(runner, monkeypatch, session):
+    """Expired/tampered token: clean refusal, not a PyJWT traceback."""
+    import jwt as jwt_lib
+
+    def raise_expired(s):
+        raise jwt_lib.ExpiredSignatureError()
+
+    monkeypatch.setattr(cli_module, "get_session", lambda: session)
+    monkeypatch.setattr(cli_module, "get_current_employee", raise_expired)
+
+    result = runner.invoke(cli, ["employees", "list"])
+    assert result.exit_code == 1
+    assert "Non connecté" in result.output
+
+
 # ---------- US-10 to US-12: employees ----------
 
 

@@ -44,7 +44,7 @@ Copy the example environment file and fill in your values:
 ```bash
 cp .env.example .env
 ```
-   Variable | Description |
+  Variable | Description |
  |---|---|
  | `DB_HOST` / `DB_PORT` | PostgreSQL host and port |
  | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Database credentials |
