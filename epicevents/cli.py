@@ -52,6 +52,15 @@ from epicevents.services.employee_service import (
     update_employee,
     list_employees,
 )
+from epicevents.services.event_service import (
+    create_event,
+    update_event,
+    assign_support,
+    list_events_without_support,
+    list_events_for_support,
+    list_events_for_commercial,
+    list_events,
+)
 from epicevents.token_store import clear_token, save_token
 
 console = Console()
@@ -335,7 +344,7 @@ def list_clients_cmd(session, employee):
     console.print(table)
 
 
-# ------- Client ------------------
+# ------- Contrat ------------------
 @click.group()
 def contracts():
     """contract management."""
@@ -455,6 +464,180 @@ def list_contract_cmd(session, employee, unsigned_only, unpaid_only):
             f"{c.remaining_amount:,.2f} €".replace(",", " "),
             "✓" if c.is_signed else "✗",
             c.creation_date.strftime("%d/%m/%Y"),
+        )
+    console.print(table)
+
+
+# ------- Event ------------------
+@click.group()
+def events():
+    """Event management."""
+
+
+# branche le groupe au groupe racine
+cli.add_command(events)
+
+
+# --- US-40 Créer un événement --------
+@events.command(name="create")
+@require_login
+@click.option("--contract-id", type=int, prompt=True)
+@click.option("--name", prompt=True)
+@click.option(
+    "--event-date-start", type=click.DateTime(formats=["%d/%m/%Y %H:%M"]), prompt=True
+)
+@click.option(
+    "--event-date-end", type=click.DateTime(formats=["%d/%m/%Y %H:%M"]), prompt=True
+)
+@click.option("--location", prompt=True)
+@click.option("--attendees", type=int, prompt=True)
+@click.option("--note", default=None)
+def create_event_cmd(
+    session,
+    employee,
+    contract_id,
+    name,
+    event_date_start,
+    event_date_end,
+    location,
+    attendees,
+    note,
+):
+    """Create a event (signed contract required)."""
+    event = create_event(
+        session=session,
+        employee=employee,
+        contract_id=contract_id,
+        name=name.strip(),
+        event_date_start=event_date_start,
+        event_date_end=event_date_end,
+        location=location.strip(),
+        attendees=attendees,
+        note=note,
+    )
+    click.echo(f"Événement créé : {event.name} (contrat {event.contract.id})")
+
+
+# --- US-41 Modifier un événement (support, le sien) --------
+@events.command(name="update")
+@require_login
+@click.argument("event_id", type=int)
+@click.option("--name", default=None)
+@click.option(
+    "--event-date-start",
+    "new_start",
+    type=click.DateTime(formats=["%d/%m/%Y %H:%M"]),
+    default=None,
+)
+@click.option(
+    "--event-date-end",
+    "new_end",
+    type=click.DateTime(formats=["%d/%m/%Y %H:%M"]),
+    default=None,
+)
+@click.option("--location", default=None)
+@click.option("--attendees", type=int, default=None)
+@click.option("--notes", default=None)
+def update_event_cmd(
+    session, employee, event_id, name, new_start, new_end, location, attendees, notes
+):
+    """Modifier un événement dont vous êtes le support."""
+    fields = {
+        k: v
+        for k, v in {
+            "name": name,
+            "event_date_start": new_start,
+            "event_date_end": new_end,
+            "location": location,
+            "attendees": attendees,
+            "notes": notes,
+        }.items()
+        if v is not None
+    }
+    if "name" in fields:
+        fields["name"] = fields["name"].strip()
+    if "location" in fields:
+        fields["location"] = fields["location"].strip()
+    updated = update_event(session, employee, event_id, **fields)
+    click.echo(f"Événement modifié : {updated.name}")
+
+
+# --- US-42 Assigner un support --------
+@events.command("assign-support")
+@require_login
+@click.option("--event-id", type=int, prompt=True)
+@click.option("--support-id", type=int, prompt=True)
+def assign(session, employee, event_id, support_id):
+    """Assign a support at an event (gestion)."""
+    event = assign_support(session, employee, event_id, support_id)
+    click.echo(f"Support assigné : {event.support.name} => {event.name}")
+
+
+# --- US-43 Lister les événements (avec filtres) --------
+@events.command(name="list")
+@require_login
+@click.option(
+    "--no-support",
+    "without_support",
+    is_flag=True,
+    help="Événements sans support assigné (vue gestion)",
+)
+@click.option(
+    "--mine",
+    "mine_only",
+    is_flag=True,
+    help="Mes événements (support) ou ceux de mes clients (commercial)",
+)
+def list_events_cmd(session, employee, without_support, mine_only):
+    """Lister les événements (lecture universelle)."""
+    if without_support:
+        events = list_events_without_support(session)
+        title = "Événements sans support"
+    elif mine_only:
+        # Adaptation au rôle : "mes événements" ne veut pas dire la même
+        # chose pour un support (assignés) et un commercial (ses clients).
+        if employee.role.name == "support":
+            events = list_events_for_support(session, employee)
+            title = f"Événements de {employee.name}"
+        elif employee.role.name == "commercial":
+            events = list_events_for_commercial(session, employee)
+            title = f"Événements des clients de {employee.name}"
+        else:
+            # Le filtre --mine n'existe pas pour la gestion (CDC) ;
+            # son filtre naturel est --no-support.
+            click.echo(
+                "Le filtre --mine concerne les rôles support et commercial.\n"
+                "Pour votre rôle, essayez : epicevents events list --no-support"
+            )
+            return
+    else:
+        events = list_events(session)
+        title = "Événements"
+
+    table = Table(title=title)
+    for col in (
+        "ID",
+        "Nom",
+        "Client",
+        "Contrat",
+        "Support",
+        "Début",
+        "Fin",
+        "Lieu",
+        "Participants",
+    ):
+        table.add_column(col)
+    for e in events:
+        table.add_row(
+            str(e.id),
+            e.name,
+            e.contract.client.name,
+            str(e.contract.id),
+            e.support.name if e.support else "—",
+            e.event_date_start.strftime("%d/%m/%Y %H:%M"),
+            e.event_date_end.strftime("%d/%m/%Y %H:%M"),
+            e.location,
+            str(e.attendees),
         )
     console.print(table)
 
