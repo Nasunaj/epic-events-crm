@@ -63,6 +63,8 @@ from epicevents.services.event_service import (
 )
 from epicevents.token_store import clear_token, save_token
 
+from epicevents.logging_conf import init_sentry
+
 console = Console()
 
 # La commande CLI s'appelle login (le nom tapé par l'utilisateur). Le service
@@ -645,6 +647,7 @@ def list_events_cmd(session, employee, without_support, mine_only):
 # --- Le harnais d'erreurs global (US-04) -----
 def main():
     """Console entry point: catch business errors, let bugs crash."""
+    init_sentry()  # Avant cli(), pour couvrir toute l'exécution
     try:
         # cli() déclenche Click : parsing de sys.argv, choix de la
         # commande, exécution. C'est ici que tout commence.

@@ -16,6 +16,7 @@ dependencies = [
     "PyJWT>=2.15",
     "rich>=15.0",
     "click>=8.5",
+    "sentry-sdk>=2.7",
 ]
 
 [project.scripts]
