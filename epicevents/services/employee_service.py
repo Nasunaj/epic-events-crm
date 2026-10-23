@@ -19,9 +19,11 @@ from epicevents.validation import (
 )
 
 
-def list_employees(session: Session) -> list[Employee]:
-    """Return all employees, sorted by employee number."""
-    return session.query(Employee).order_by(Employee.employee_number).all()
+def list_employees(session):
+    """Return all employees, sorted by employee number (Python sort:
+    employee_number is encrypted at rest."""
+    employees = session.query(Employee).all()
+    return sorted(employees, key=lambda e: e.employee_number)
 
 
 def _validate_password(password: str, confirmation: str | None = None) -> None:

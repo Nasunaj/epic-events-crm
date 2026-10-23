@@ -4,12 +4,23 @@ This module defines the SQLAlchemy ORM models mapping the database tables :
 roles, employees, clients, contracts and events
 """
 
+import os
 from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy_utils.types.encrypted.encrypted_type import (
+    StringEncryptedType,
+    AesEngine,
+)
+
 from epicevents.database import Base
+
+# Clé de chiffrement lue au démarrage, jamais en dur dans le code.
+# load_dotenv() a déjà été exécuté : database.py (importé ci-dessus) le fait
+# à son propre chargement donc la variable est déjà dans l'environnement.
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 
 class Role(Base):
@@ -36,10 +47,16 @@ class Employee(Base):
 
     __tablename__ = "employee"
     id: Mapped[int] = mapped_column(primary_key=True)
-    employee_number: Mapped[int] = mapped_column(String(100), unique=True)
-    name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(100), unique=True)
-    # Ne doit pas stocker le mot de passe en clair
+    employee_number: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine), unique=True
+    )
+    name: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
+    email: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine), unique=True
+    )
+    # Ne dois pas stocker le mot de passe en clair
     password_hash: Mapped[str] = mapped_column(String(255))
     role_id: Mapped[int] = mapped_column(ForeignKey("role.id"))
     role: Mapped["Role"] = relationship(back_populates="employees")
@@ -73,10 +90,18 @@ class Client(Base):
     __tablename__ = "client"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(100), unique=True)
-    phone: Mapped[str] = mapped_column(String(20))
-    company_name: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
+    email: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine), unique=True
+    )
+    phone: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
+    company_name: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
     creation_date: Mapped[datetime] = mapped_column(DateTime)
     last_update: Mapped[datetime] = mapped_column(DateTime)
     commercial_id: Mapped[int] = mapped_column(ForeignKey("employee.id"))
@@ -142,12 +167,18 @@ class Event(Base):
 
     __tablename__ = "event"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
     event_date_start: Mapped[datetime] = mapped_column(DateTime)
     event_date_end: Mapped[datetime] = mapped_column(DateTime)
-    location: Mapped[str] = mapped_column(String(500))
+    location: Mapped[str] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine)
+    )
     attendees: Mapped[int | None] = mapped_column(Integer)
-    note: Mapped[str | None] = mapped_column(String(1000))
+    note: Mapped[str | None] = mapped_column(
+        StringEncryptedType(String, ENCRYPTION_KEY, AesEngine), nullable=True
+    )
     contract_id: Mapped[int] = mapped_column(ForeignKey("contract.id"), unique=True)
     contract: Mapped["Contract"] = relationship(
         back_populates="event", foreign_keys=[contract_id]

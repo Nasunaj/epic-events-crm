@@ -39,9 +39,12 @@ def _validate_client_email(
         raise DuplicateError(f"Email client déjà utilisé : {email!r}")
 
 
-def list_clients(session: Session) -> list[Client]:
-    """Return all clients (read access is universal), sorted by name."""
-    return session.query(Client).order_by(Client.name).all()
+# client_service.py
+def list_clients(session):
+    """Return all clients sorted by name (Python sort: name is encrypted at
+    rest)."""
+    clients = session.query(Client).all()
+    return sorted(clients, key=lambda c: c.name)
 
 
 def create_client(
