@@ -17,6 +17,8 @@ dependencies = [
     "rich>=15.0",
     "click>=8.5",
     "sentry-sdk>=2.7",
+    "sqlalchemy-utils>=0.41",
+    "cryptography>=50.0",
 ]
 
 [project.scripts]
